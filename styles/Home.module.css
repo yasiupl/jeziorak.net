@@ -1,0 +1,36 @@
+.externalLinks {
+  margin-top: 30px;
+  display: flex;
+  flex-direction: column; /* Stack links vertically on smaller screens */
+  align-items: center;
+  gap: 15px; /* Space between links */
+  padding: 10px;
+  width: 100%;
+  max-width: 600px; /* Limit width of the links section */
+}
+
+.link {
+  display: inline-block;
+  padding: 10px 15px;
+  border: 1px solid #0070f3; /* Next.js blue */
+  border-radius: 5px;
+  color: #0070f3;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.link:hover,
+.link:focus {
+  background-color: #0070f3;
+  color: white;
+  text-decoration: none;
+}
+
+/* Optional: if you want links side-by-side on larger screens */
+@media (min-width: 600px) {
+  .externalLinks {
+    flex-direction: row; /* Links side-by-side */
+    justify-content: space-around; /* Distribute space */
+  }
+}

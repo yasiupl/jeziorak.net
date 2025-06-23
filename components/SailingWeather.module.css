@@ -1,0 +1,105 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell,
+    Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+}
+
+.question {
+  font-size: 2rem;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.tak,
+.nie,
+.error_decision { /* Style for when decision is 'Błąd' */
+  font-size: clamp(2.5rem, 10vw, 5rem); /* Responsive font size: min, preferred, max */
+  font-weight: bold;
+  padding: clamp(10px, 3vw, 20px) clamp(20px, 5vw, 40px); /* Responsive padding */
+  border-radius: 10px;
+  color: white;
+  min-width: clamp(150px, 50vw, 300px); /* Responsive min-width */
+  max-width: 90vw; /* Ensure it doesn't get too wide */
+  word-wrap: break-word; /* Allow long words to break */
+  box-sizing: border-box; /* Include padding and border in the element's total width and height */
+  display: inline-block; /* Helps with width and centering if needed */
+  text-align: center;
+}
+
+.tak {
+  background-color: #28a745; /* Green */
+}
+
+.nie {
+  background-color: #dc3545; /* Red */
+}
+
+.error_decision {
+  background-color: #ffc107; /* Yellow/Amber for error */
+  font-size: clamp(2rem, 8vw, 3rem); /* Slightly smaller for error message, also responsive */
+}
+
+.loading {
+  font-size: 1.5rem;
+  color: #555;
+}
+
+.error {
+  font-size: 1.2rem;
+  color: #dc3545; /* Red for error messages */
+  padding: 10px;
+  border: 1px solid #dc3545;
+  border-radius: 5px;
+  background-color: #f8d7da; /* Light red background */
+}
+
+.details {
+  margin-top: 30px;
+  padding: 15px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+.details p {
+  margin: 5px 0;
+}
+
+.explanation {
+  margin-top: 15px;
+  font-size: 1rem;
+  color: #555;
+  max-width: 600px; /* Limit width for readability */
+  line-height: 1.5;
+}
+
+.errorLinkButton {
+  display: inline-block;
+  margin-top: 15px;
+  padding: 10px 20px;
+  background-color: #007bff; /* Blue color, similar to other links */
+  color: white;
+  text-decoration: none;
+  border-radius: 5px;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.errorLinkButton:hover {
+  background-color: #0056b3; /* Darker blue on hover */
+}
+
+.errorBox {
+  /* This class is used with .error_decision for the main "Błąd" text */
+  /* .error_decision already provides background, font size, color, etc. */
+  /* Add any specific overrides or additional styles for the error box here if needed */
+  /* For example, if you want a different padding or border specifically for the error text box */
+  padding: clamp(10px, 3vw, 15px) clamp(15px, 4vw, 30px); /* Slightly adjusted padding for error box */
+}

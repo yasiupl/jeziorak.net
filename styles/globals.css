@@ -1,14 +1,38 @@
-html,
+html {
+  height: 100%; /* Ensure html takes full height for body to inherit */
+}
+
 body {
-  background-color: #f8fafc;
+  background-color: #f8fafc; /* Fallback color */
+  background-image: url('/jeziorak-map.svg');
+  background-size: auto 100vh; /* Scale height to viewport, width auto */
+  background-position: center center; /* Center the image */
+  background-repeat: no-repeat;
+  background-attachment: fixed; /* Keep the background fixed during scroll */
   padding: 0;
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell,
     Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  min-height: 100%; /* Ensure body takes at least full viewport height */
+  position: relative; /* For pseudo-element overlay */
+}
+
+body::before { /* Optional: Add a semi-transparent overlay for better text readability */
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8); /* White overlay with 80% opacity */
+  z-index: -1; /* Place overlay behind content but above body's direct background */
 }
 
 * {
   box-sizing: border-box;
+  /* Ensure content is above the body's pseudo-element overlay */
+  position: relative;
+  z-index: 1;
 }
 
 main {
@@ -28,9 +52,18 @@ code {
 }
 
 .container {
-  height: 100vh;
+  min-height: 100vh; /* Use min-height to allow content to expand */
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: space-between; /* Push footer to bottom if content is short */
   align-items: center;
+  /* background-color: rgba(255, 255, 255, 0.7); /* Optional: slight background for container if needed */
+  /* padding: 20px; */ /* Padding is already on main/footer */
+}
+
+/* Reset z-index for direct children of body if they were affected by '*' rule,
+   though typically components like main/footer in .container will manage their own stacking.
+   This might not be strictly necessary depending on exact component structure. */
+main, footer {
+  z-index: 2; /* Ensure main content and footer are above the body overlay */
 }
