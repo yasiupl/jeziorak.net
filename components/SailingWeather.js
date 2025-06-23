@@ -269,7 +269,7 @@ export default function SailingWeather() {
       {!isLoading && currentSailingData && sailingDecision !== 'Błąd' && (
         <div className={styles.feedbackSection}>
           <a
-            href={`mailto:zgłoszenia@jeziorak.net?subject=${encodeURIComponent("Zgłoszenie - Prognoza Jeziorak.net")}&body=${encodeURIComponent(
+            href={`mailto:zgloszenia@jeziorak.net?subject=${encodeURIComponent("Zgłoszenie - Prognoza Jeziorak.net")}&body=${encodeURIComponent(
 `Aktualna prognoza (wg aplikacji o ${currentSailingData.time ? new Date(currentSailingData.time).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : 'Brak danych o czasie'}):
 --------------------------------------------------
 Temperatura: ${currentSailingData.temperature}°C
@@ -289,6 +289,36 @@ Opisz proszę, co się nie zgadza lub co można poprawić:
             Zgłoś uwagę do prognozy
           </a>
         </div>
+      )}
+{/* FAQ Section */}
+      {!isLoading && currentSailingData && sailingDecision !== 'Błąd' && (
+        &lt;div className={styles.faqSection}&gt;
+          &lt;h4&gt;Jak to działa? - FAQ&lt;/h4&gt;
+          &lt;details&gt;
+            &lt;summary&gt;Jak podejmowana jest decyzja "{currentYesAnswer || "Pływamy!"}" / "{currentNoAnswer || "Klarujemy."}"?&lt;/summary&gt;
+            &lt;p&gt;
+              Decyzja opiera się na aktualnych danych pogodowych dla najbliższej godziny. Aby warunki zostały uznane za sprzyjające żeglowaniu ({currentYesAnswer || "Pływamy!"}), muszą być spełnione WSZYSTKIE poniższe kryteria:
+            &lt;/p&gt;
+            &lt;ul&gt;
+              &lt;li&gt;Prędkość wiatru: pomiędzy {WIND_SPEED_MIN_KMH} km/h a {WIND_SPEED_MAX_KMH} km/h.&lt;/li&gt;
+              &lt;li&gt;Zachmurzenie: poniżej {CLOUD_COVER_MAX_PERCENT}%.&lt;/li&gt;
+              &lt;li&gt;Opady: {PRECIPITATION_MAX_MM} mm (brak opadów).&lt;/li&gt;
+              &lt;li&gt;Ryzyko burzy (CAPE): poniżej {CAPE_MAX_JKG} J/kg.&lt;/li&gt;
+            &lt;/ul&gt;
+            &lt;p&gt;
+              Jeśli którykolwiek z tych warunków nie jest spełniony, wyświetlana jest decyzja ({currentNoAnswer || "Klarujemy."}) wraz z wyjaśnieniem, które parametry nie mieszczą się w założonych granicach.
+            &lt;/p&gt;
+          &lt;/details&gt;
+          &lt;details&gt;
+            &lt;summary&gt;Co oznaczają poszczególne parametry?&lt;/summary&gt;
+            &lt;ul&gt;
+              &lt;li&gt;&lt;strong&gt;Prędkość wiatru:&lt;/strong&gt; Optymalna siła wiatru do żeglowania. Za słaby wiatr utrudnia poruszanie się, a zbyt silny może być niebezpieczny.&lt;/li&gt;
+              &lt;li&gt;&lt;strong&gt;Zachmurzenie:&lt;/strong&gt; Procent pokrycia nieba chmurami. Mniejsze zachmurzenie oznacza więcej słońca.&lt;/li&gt;
+              &lt;li&gt;&lt;strong&gt;Opady:&lt;/strong&gt; Ilość deszczu w milimetrach. Brak opadów jest preferowany.&lt;/li&gt;
+              &lt;li&gt;&lt;strong&gt;Ryzyko burzy (CAPE):&lt;/strong&gt; CAPE (Convective Available Potential Energy) to wskaźnik niestabilności atmosfery. Wyższe wartości oznaczają większe prawdopodobieństwo wystąpienia burz. Wartości poniżej {CAPE_MAX_JKG} J/kg uznawane są za bezpieczne.&lt;/li&gt;
+            &lt;/ul&gt;
+          &lt;/details&gt;
+        &lt;/div&gt;
       )}
     </div>
   );
