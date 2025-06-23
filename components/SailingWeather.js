@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import styles from './SailingWeather.module.css';
-
-// Define thresholds for good sailing conditions
-const WIND_SPEED_MIN_KMH = 10;
-const WIND_SPEED_MAX_KMH = 30;
-const CLOUD_COVER_MAX_PERCENT = 50; // Less than 50% cloud cover for "sunny"
-const PRECIPITATION_MAX_MM = 0;
-const CAPE_MAX_JKG = 500; // Convective Available Potential Energy - lower is better
+import {
+  WIND_SPEED_MIN_KMH,
+  WIND_SPEED_MAX_KMH,
+  CLOUD_COVER_MAX_PERCENT,
+  PRECIPITATION_MAX_MM,
+  CAPE_MAX_JKG,
+} from '../config/weatherConfig';
+import FeedbackButton from './FeedbackButton'; // Import the new component
 
 const QUESTION_ANSWER_TRIPLETS = [
   {
@@ -45,8 +46,8 @@ const getRandomTriplet = () => QUESTION_ANSWER_TRIPLETS[Math.floor(Math.random()
 
 const getCapeDescription = (cape) => {
   if (cape === null || typeof cape === 'undefined') return 'Brak danych';
-  if (cape < 100) return 'Niskie'; // Thresholds are examples, adjust as needed
-  if (cape < CAPE_MAX_JKG) return 'Niskie (wartość progowa)'; // Explicitly state if below our app's threshold
+  if (cape < 100) return 'Niskie'; // These specific thresholds for description can remain local if they are not the primary decision thresholds
+  if (cape < CAPE_MAX_JKG) return `Niskie (poniżej progu ${CAPE_MAX_JKG} J/kg)`; // Use imported CAPE_MAX_JKG
   if (cape < 1000) return 'Umiarkowane';
   if (cape < 2500) return 'Wysokie';
   return 'Bardzo wysokie';
@@ -267,58 +268,7 @@ export default function SailingWeather() {
       )}
       
       {!isLoading && currentSailingData && sailingDecision !== 'Błąd' && (
-        <div className={styles.feedbackSection}>
-          <a
-            href={`mailto:zgloszenia@jeziorak.net?subject=${encodeURIComponent("Zgłoszenie - Prognoza Jeziorak.net")}&body=${encodeURIComponent(
-`Aktualna prognoza (wg aplikacji o ${currentSailingData.time ? new Date(currentSailingData.time).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : 'Brak danych o czasie'}):
---------------------------------------------------
-Temperatura: ${currentSailingData.temperature}°C
-Wiatr: ${currentSailingData.windSpeed} km/h
-Zachmurzenie: ${currentSailingData.cloudCover}%
-Opady: ${currentSailingData.precipitation} mm
-Ryzyko burzy (CAPE): ${currentSailingData.cape} J/kg (${getCapeDescription(currentSailingData.cape)})
---------------------------------------------------
-
-Opisz proszę, co się nie zgadza lub co można poprawić:
-[Twoje uwagi]
-
-`
-            )}`}
-            className={styles.feedbackButton}
-          >
-            Zgłoś uwagę do prognozy
-          </a>
-        </div>
-      )}
-{/* FAQ Section */}
-      {!isLoading && currentSailingData && sailingDecision !== 'Błąd' && (
-        &lt;div className={styles.faqSection}&gt;
-          &lt;h4&gt;Jak to działa? - FAQ&lt;/h4&gt;
-          &lt;details&gt;
-            &lt;summary&gt;Jak podejmowana jest decyzja "{currentYesAnswer || "Pływamy!"}" / "{currentNoAnswer || "Klarujemy."}"?&lt;/summary&gt;
-            &lt;p&gt;
-              Decyzja opiera się na aktualnych danych pogodowych dla najbliższej godziny. Aby warunki zostały uznane za sprzyjające żeglowaniu ({currentYesAnswer || "Pływamy!"}), muszą być spełnione WSZYSTKIE poniższe kryteria:
-            &lt;/p&gt;
-            &lt;ul&gt;
-              &lt;li&gt;Prędkość wiatru: pomiędzy {WIND_SPEED_MIN_KMH} km/h a {WIND_SPEED_MAX_KMH} km/h.&lt;/li&gt;
-              &lt;li&gt;Zachmurzenie: poniżej {CLOUD_COVER_MAX_PERCENT}%.&lt;/li&gt;
-              &lt;li&gt;Opady: {PRECIPITATION_MAX_MM} mm (brak opadów).&lt;/li&gt;
-              &lt;li&gt;Ryzyko burzy (CAPE): poniżej {CAPE_MAX_JKG} J/kg.&lt;/li&gt;
-            &lt;/ul&gt;
-            &lt;p&gt;
-              Jeśli którykolwiek z tych warunków nie jest spełniony, wyświetlana jest decyzja ({currentNoAnswer || "Klarujemy."}) wraz z wyjaśnieniem, które parametry nie mieszczą się w założonych granicach.
-            &lt;/p&gt;
-          &lt;/details&gt;
-          &lt;details&gt;
-            &lt;summary&gt;Co oznaczają poszczególne parametry?&lt;/summary&gt;
-            &lt;ul&gt;
-              &lt;li&gt;&lt;strong&gt;Prędkość wiatru:&lt;/strong&gt; Optymalna siła wiatru do żeglowania. Za słaby wiatr utrudnia poruszanie się, a zbyt silny może być niebezpieczny.&lt;/li&gt;
-              &lt;li&gt;&lt;strong&gt;Zachmurzenie:&lt;/strong&gt; Procent pokrycia nieba chmurami. Mniejsze zachmurzenie oznacza więcej słońca.&lt;/li&gt;
-              &lt;li&gt;&lt;strong&gt;Opady:&lt;/strong&gt; Ilość deszczu w milimetrach. Brak opadów jest preferowany.&lt;/li&gt;
-              &lt;li&gt;&lt;strong&gt;Ryzyko burzy (CAPE):&lt;/strong&gt; CAPE (Convective Available Potential Energy) to wskaźnik niestabilności atmosfery. Wyższe wartości oznaczają większe prawdopodobieństwo wystąpienia burz. Wartości poniżej {CAPE_MAX_JKG} J/kg uznawane są za bezpieczne.&lt;/li&gt;
-            &lt;/ul&gt;
-          &lt;/details&gt;
-        &lt;/div&gt;
+        <FeedbackButton currentSailingData={currentSailingData} getCapeDescription={getCapeDescription} />
       )}
     </div>
   );

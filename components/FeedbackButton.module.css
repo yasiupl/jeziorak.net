@@ -1,0 +1,23 @@
+.feedbackSection {
+  margin-top: 20px;
+  padding: 10px;
+  text-align: center; /* Center the button if it's in its own section */
+}
+
+.feedbackButton {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 10px 20px;
+  background-color: #17a2b8; /* Info color - a teal/cyan */
+  color: white;
+  text-decoration: none;
+  border-radius: 5px;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+  border: none; /* Ensure no default border */
+  cursor: pointer; /* Indicate it's clickable */
+}
+
+.feedbackButton:hover {
+  background-color: #138496; /* Darker shade of info color */
+}
