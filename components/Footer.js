@@ -13,7 +13,7 @@ export default function Footer() {
           </p>
           <div className={styles.links}>
             <a href={livestreamUrl} target="_blank" rel="noopener noreferrer" className={styles.link}>
-              Kamera na żywo (Marina Iława)
+              Kamera na żywo (Ekomarina Iława)
             </a>
             <a href={meteoUrl} target="_blank" rel="noopener noreferrer" className={styles.link}>
               Prognoza ICM (meteo.pl)
