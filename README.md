@@ -1,5 +1,5 @@
 # Czy na Jezioraku wieje? Sprawdź pogodę dla żeglarzy
-
+[![Netlify Status](https://api.netlify.com/api/v1/badges/b1209405-08e2-4ffd-95e6-3cce6a796f29/deploy-status)](https://app.netlify.com/projects/jeziorak/deploys)
 
 ## Cel projektu
 
