@@ -265,6 +265,31 @@ export default function SailingWeather() {
           <p>Ryzyko burzy (CAPE): {currentSailingData.cape} J/kg ({getCapeDescription(currentSailingData.cape)})</p>
         </div>
       )}
+      
+      {!isLoading && currentSailingData && sailingDecision !== 'Błąd' && (
+        <div className={styles.feedbackSection}>
+          <a
+            href={`mailto:zgłoszenia@jeziorak.net?subject=${encodeURIComponent("Zgłoszenie - Prognoza Jeziorak.net")}&body=${encodeURIComponent(
+`Aktualna prognoza (wg aplikacji o ${currentSailingData.time ? new Date(currentSailingData.time).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : 'Brak danych o czasie'}):
+--------------------------------------------------
+Temperatura: ${currentSailingData.temperature}°C
+Wiatr: ${currentSailingData.windSpeed} km/h
+Zachmurzenie: ${currentSailingData.cloudCover}%
+Opady: ${currentSailingData.precipitation} mm
+Ryzyko burzy (CAPE): ${currentSailingData.cape} J/kg (${getCapeDescription(currentSailingData.cape)})
+--------------------------------------------------
+
+Opisz proszę, co się nie zgadza lub co można poprawić:
+[Twoje uwagi]
+
+`
+            )}`}
+            className={styles.feedbackButton}
+          >
+            Zgłoś uwagę do prognozy
+          </a>
+        </div>
+      )}
     </div>
   );
 }
