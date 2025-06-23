@@ -43,6 +43,15 @@ const QUESTION_ANSWER_TRIPLETS = [
 
 const getRandomTriplet = () => QUESTION_ANSWER_TRIPLETS[Math.floor(Math.random() * QUESTION_ANSWER_TRIPLETS.length)];
 
+const getCapeDescription = (cape) => {
+  if (cape === null || typeof cape === 'undefined') return 'Brak danych';
+  if (cape < 100) return 'Niskie'; // Thresholds are examples, adjust as needed
+  if (cape < CAPE_MAX_JKG) return 'Niskie (wartość progowa)'; // Explicitly state if below our app's threshold
+  if (cape < 1000) return 'Umiarkowane';
+  if (cape < 2500) return 'Wysokie';
+  return 'Bardzo wysokie';
+};
+
 export default function SailingWeather() {
   const [sailingDecision, setSailingDecision] = useState(null);
   const [isLoading, setLoading] = useState(true);
@@ -253,7 +262,7 @@ export default function SailingWeather() {
           <p>Wiatr: {currentSailingData.windSpeed} km/h</p>
           <p>Zachmurzenie: {currentSailingData.cloudCover}%</p>
           <p>Opady: {currentSailingData.precipitation} mm</p>
-          <p>Ryzyko burzy (CAPE): {currentSailingData.cape} J/kg</p>
+          <p>Ryzyko burzy (CAPE): {currentSailingData.cape} J/kg ({getCapeDescription(currentSailingData.cape)})</p>
         </div>
       )}
     </div>

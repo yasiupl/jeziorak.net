@@ -18,6 +18,15 @@ export default function Footer() {
             <a href={meteoUrl} target="_blank" rel="noopener noreferrer" className={styles.link}>
               Prognoza ICM (meteo.pl)
             </a>
+            <a href="https://github.com/yasiupl/jeziorak.net" target="_blank" rel="noopener noreferrer" className={styles.link}>
+              Repozytorium GitHub
+            </a>
+            <a href="https://jasiukowicz.pl" target="_blank" rel="noopener noreferrer" className={styles.link}>
+              Strona autora
+            </a>
+            <a href="https://www.patreon.com/yasiu" target="_blank" rel="noopener noreferrer" className={styles.link}>
+              Podoba się? Wspieraj
+            </a>
           </div>
         </div>
       </footer>
