@@ -3,9 +3,18 @@ import styles from './SailingWeather.module.css';
 import {
   WIND_SPEED_MIN_KMH,
   WIND_SPEED_MAX_KMH,
-  CLOUD_COVER_MAX_PERCENT,
   PRECIPITATION_MAX_MM,
   CAPE_MAX_JKG,
+  CLOUD_COVER_IDEAL_MAX_PERCENT,
+  CLOUD_COVER_ACCEPTABLE_MAX_PERCENT,
+  TEMP_IDEAL_MIN_C,
+  TEMP_IDEAL_MAX_C,
+  TEMP_ACCEPTABLE_MIN_C,
+  TEMP_ACCEPTABLE_MAX_C,
+  WEIGHT_WIND,
+  WEIGHT_CLOUD_COVER,
+  WEIGHT_TEMPERATURE,
+  SAILING_SCORE_THRESHOLD,
 } from '../config/weatherConfig';
 import FeedbackButton from './FeedbackButton'; // Import the new component
 
@@ -43,6 +52,27 @@ const QUESTION_ANSWER_TRIPLETS = [
 ];
 
 const getRandomTriplet = () => QUESTION_ANSWER_TRIPLETS[Math.floor(Math.random() * QUESTION_ANSWER_TRIPLETS.length)];
+
+// Helper functions for wind conversion
+const kmhToMs = (kmh) => (kmh * 0.277778);
+const kmhToKnots = (kmh) => (kmh * 0.539957);
+
+const getBeaufortScale = (kmh) => {
+  if (kmh < 1) return { bft: 0, desc: 'Cisza' };
+  if (kmh <= 5) return { bft: 1, desc: 'Słaby powiew' };
+  if (kmh <= 11) return { bft: 2, desc: 'Słaby wiatr' };
+  if (kmh <= 19) return { bft: 3, desc: 'Łagodny wiatr' };
+  if (kmh <= 28) return { bft: 4, desc: 'Umiarkowany wiatr' };
+  if (kmh <= 38) return { bft: 5, desc: 'Świeży wiatr' };
+  if (kmh <= 49) return { bft: 6, desc: 'Silny wiatr' };
+  if (kmh <= 61) return { bft: 7, desc: 'Bardzo silny wiatr' };
+  if (kmh <= 74) return { bft: 8, desc: 'Sztorm' }; // Gale
+  if (kmh <= 88) return { bft: 9, desc: 'Silny sztorm' }; // Strong gale
+  if (kmh <= 102) return { bft: 10, desc: 'Bardzo silny sztorm' }; // Storm
+  if (kmh <= 117) return { bft: 11, desc: 'Gwałtowny sztorm' }; // Violent storm
+  return { bft: 12, desc: 'Huragan' }; // Hurricane force
+};
+
 
 const getCapeDescription = (cape) => {
   if (cape === null || typeof cape === 'undefined') return 'Brak danych';
@@ -164,32 +194,87 @@ export default function SailingWeather() {
         setCurrentSailingData(currentData); // Store the relevant weather data
 
         // Decision logic
-        const isGoodWind = currentData.windSpeed >= WIND_SPEED_MIN_KMH && currentData.windSpeed <= WIND_SPEED_MAX_KMH;
-        const isSunny = currentData.cloudCover < CLOUD_COVER_MAX_PERCENT;
-        const noRain = currentData.precipitation <= PRECIPITATION_MAX_MM;
-        const noThunderstormRisk = currentData.cape < CAPE_MAX_JKG;
-
         let reasons = [];
-        if (isGoodWind && isSunny && noRain && noThunderstormRisk) {
-          setSailingDecision(selectedTriplet.yes); // Use directly from selectedTriplet
-          setExplanation('Warunki są sprzyjające.');
+        let sailingScore = 0;
+        let decision = selectedTriplet.no; // Default to "No"
+        let explanationMsg = '';
+
+        // Critical "No-Go" conditions
+        const criticalWindOK = currentData.windSpeed >= WIND_SPEED_MIN_KMH && currentData.windSpeed <= WIND_SPEED_MAX_KMH;
+        const criticalNoRain = currentData.precipitation <= PRECIPITATION_MAX_MM;
+        const criticalNoStormRisk = currentData.cape < CAPE_MAX_JKG;
+
+        if (!criticalWindOK) {
+          if (currentData.windSpeed < WIND_SPEED_MIN_KMH) reasons.push(`wiatr jest za słaby (${currentData.windSpeed.toFixed(1)} km/h, min. ${WIND_SPEED_MIN_KMH} km/h)`);
+          if (currentData.windSpeed > WIND_SPEED_MAX_KMH) reasons.push(`wiatr jest za silny (${currentData.windSpeed.toFixed(1)} km/h, max. ${WIND_SPEED_MAX_KMH} km/h)`);
+        }
+        if (!criticalNoRain) {
+          reasons.push(`występują opady (${currentData.precipitation} mm)`);
+        }
+        if (!criticalNoStormRisk) {
+          reasons.push(`istnieje ryzyko burzy (CAPE: ${currentData.cape} J/kg, max. ${CAPE_MAX_JKG} J/kg)`);
+        }
+
+        if (reasons.length > 0) { // If any critical condition fails
+          explanationMsg = `Ponieważ ${reasons.join(', oraz ')}.`;
         } else {
-          setSailingDecision(selectedTriplet.no); // Use directly from selectedTriplet
-          if (!isGoodWind) {
-            if (currentData.windSpeed < WIND_SPEED_MIN_KMH) reasons.push(`wiatr jest za słaby (${currentData.windSpeed} km/h, min. ${WIND_SPEED_MIN_KMH} km/h)`);
-            if (currentData.windSpeed > WIND_SPEED_MAX_KMH) reasons.push(`wiatr jest za silny (${currentData.windSpeed} km/h, max. ${WIND_SPEED_MAX_KMH} km/h)`);
+          // All critical conditions are met, proceed to weighted scoring
+          let windScore = 1.0; // Assumed good if in range
+
+          let cloudCoverScore = 0;
+          if (currentData.cloudCover < CLOUD_COVER_IDEAL_MAX_PERCENT) {
+            cloudCoverScore = 1.0; // Ideal
+          } else if (currentData.cloudCover <= CLOUD_COVER_ACCEPTABLE_MAX_PERCENT) {
+            cloudCoverScore = 0.5; // Acceptable
           }
-          if (!isSunny) reasons.push(`jest zbyt duże zachmurzenie (${currentData.cloudCover}%, max. ${CLOUD_COVER_MAX_PERCENT}%)`);
-          if (!noRain) reasons.push(`występują opady (${currentData.precipitation} mm)`);
-          if (!noThunderstormRisk) reasons.push(`istnieje ryzyko burzy (CAPE: ${currentData.cape} J/kg, max. ${CAPE_MAX_JKG} J/kg)`);
+
+          let temperatureScore = 0;
+          if (currentData.temperature >= TEMP_IDEAL_MIN_C && currentData.temperature <= TEMP_IDEAL_MAX_C) {
+            temperatureScore = 1.0; // Ideal
+          } else if (currentData.temperature >= TEMP_ACCEPTABLE_MIN_C && currentData.temperature <= TEMP_ACCEPTABLE_MAX_C) {
+            temperatureScore = 0.5; // Acceptable
+          }
           
-          if (reasons.length > 0) {
-            // Also use selectedTriplet.no for the explanation prefix if needed
-            setExplanation(`Ponieważ ${reasons.join(', oraz ')}.`);
+          sailingScore = (windScore * WEIGHT_WIND) +
+                         (cloudCoverScore * WEIGHT_CLOUD_COVER) +
+                         (temperatureScore * WEIGHT_TEMPERATURE);
+
+          const displayScore = Math.round(sailingScore * 100);
+          const displayThreshold = Math.round(SAILING_SCORE_THRESHOLD * 100);
+
+          if (sailingScore >= SAILING_SCORE_THRESHOLD) {
+            decision = selectedTriplet.yes;
+            if (sailingScore < 0.95) { // Not perfect but good enough
+                 explanationMsg = `Warunki są dobre (ocena: ${displayScore}%). `;
+                 let details = [];
+                 if (cloudCoverScore < 1.0) details.push(`zachmurzenie ${currentData.cloudCover}%`);
+                 if (temperatureScore < 1.0) details.push(`temperatura ${currentData.temperature.toFixed(1)}°C`);
+                 if (details.length > 0) explanationMsg += `Mimo to, ${details.join(' i ')} są w akceptowalnym zakresie.`;
+                 else explanationMsg += `Wszystkie kluczowe parametry są w normie.`;
+
+            } else {
+                 explanationMsg = `Warunki są idealne (ocena: ${displayScore}/${displayThreshold} pkt)!`;
+            }
           } else {
-            setExplanation(`Warunki nie są optymalne (sprawdź szczegóły poniżej).`);
+            decision = selectedTriplet.no;
+            explanationMsg = `Warunki nie są wystarczająco dobre (ocena: ${displayScore}/${displayThreshold} pkt). `;
+            let subOptimalReasons = [];
+            if (cloudCoverScore < 0.5) subOptimalReasons.push(`zbyt duże zachmurzenie (${currentData.cloudCover}%)`);
+            else if (cloudCoverScore < 1.0) subOptimalReasons.push(`zachmurzenie mogłoby być mniejsze (${currentData.cloudCover}%)`);
+            
+            if (temperatureScore < 0.5) subOptimalReasons.push(`temperatura jest zbyt niska/wysoka (${currentData.temperature.toFixed(1)}°C)`);
+            else if (temperatureScore < 1.0) subOptimalReasons.push(`temperatura mogłaby być bardziej komfortowa (${currentData.temperature.toFixed(1)}°C)`);
+
+            if (subOptimalReasons.length > 0) {
+              explanationMsg += `Główne powody: ${subOptimalReasons.join(', ')}.`;
+            } else if (reasons.length === 0) { // Should not happen if score is low and no critical fails, but as a fallback
+                explanationMsg += `Ogólna ocena warunków jest poniżej progu.`;
+            }
           }
         }
+        
+        setSailingDecision(decision);
+        setExplanation(explanationMsg);
 
       } catch (e) {
         console.error("Failed to fetch or process weather data:", e);
@@ -259,16 +344,29 @@ export default function SailingWeather() {
       {!isLoading && currentSailingData && sailingDecision !== 'Błąd' && (
         <div className={styles.details}>
           <h4>Aktualne warunki ({currentSailingData.time ? new Date(currentSailingData.time).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : 'Brak danych o czasie'}):</h4>
-          <p>Temperatura: {currentSailingData.temperature}°C</p>
-          <p>Wiatr: {currentSailingData.windSpeed} km/h</p>
+          <p>Temperatura: {currentSailingData.temperature.toFixed(1)}°C</p>
+          <p>
+            Wiatr: {currentSailingData.windSpeed.toFixed(1)} km/h
+            ({kmhToMs(currentSailingData.windSpeed).toFixed(1)} m/s, {kmhToKnots(currentSailingData.windSpeed).toFixed(1)} węzłów)
+            <br />
+            Skala Beauforta: {getBeaufortScale(currentSailingData.windSpeed).bft} Bft ({getBeaufortScale(currentSailingData.windSpeed).desc})
+          </p>
           <p>Zachmurzenie: {currentSailingData.cloudCover}%</p>
           <p>Opady: {currentSailingData.precipitation} mm</p>
-          <p>Ryzyko burzy (CAPE): {getCapeDescription(currentSailingData.cape)} ({currentSailingData.cape} J/kg)</p>
+          <p>Ryzyko burzy (CAPE): {currentSailingData.cape} J/kg ({getCapeDescription(currentSailingData.cape)})</p>
         </div>
       )}
       
       {!isLoading && currentSailingData && sailingDecision !== 'Błąd' && (
-        <FeedbackButton currentSailingData={currentSailingData} getCapeDescription={getCapeDescription} />
+        <FeedbackButton
+          currentSailingData={currentSailingData}
+          getCapeDescription={getCapeDescription}
+          getBeaufortScale={getBeaufortScale}
+          kmhToMs={kmhToMs}
+          kmhToKnots={kmhToKnots}
+          sailingDecision={sailingDecision}
+          explanation={explanation}
+        />
       )}
     </div>
   );

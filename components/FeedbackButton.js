@@ -1,10 +1,9 @@
 import styles from './FeedbackButton.module.css';
 
-// The getCapeDescription function might be needed here if we want to include its output
-// in the mailto link directly from this component.
-// For now, assuming it might be passed or the mailto body is simplified.
+// The getCapeDescription, getBeaufortScale, kmhToMs, kmhToKnots, sailingDecision, explanation functions might be needed here
+// if we want to include their output in the mailto link directly from this component.
 
-export default function FeedbackButton({ currentSailingData, getCapeDescription }) {
+export default function FeedbackButton({ currentSailingData, getCapeDescription, getBeaufortScale, kmhToMs, kmhToKnots, sailingDecision, explanation }) {
   if (!currentSailingData) {
     // Or render a generic button if no data is available
     return (
@@ -19,13 +18,22 @@ export default function FeedbackButton({ currentSailingData, getCapeDescription 
     );
   }
 
-  const mailBody = `Aktualna prognoza (wg aplikacji o ${currentSailingData.time ? new Date(currentSailingData.time).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : 'Brak danych o czasie'}):
+  const beaufort = getBeaufortScale && currentSailingData.windSpeed !== undefined ? getBeaufortScale(currentSailingData.windSpeed) : null;
+  const windMs = kmhToMs && currentSailingData.windSpeed !== undefined ? kmhToMs(currentSailingData.windSpeed).toFixed(1) : 'N/A';
+  const windKnots = kmhToKnots && currentSailingData.windSpeed !== undefined ? kmhToKnots(currentSailingData.windSpeed).toFixed(1) : 'N/A';
+
+  const mailBody = `Prognoza aplikacji:
+Decyzja: ${sailingDecision || 'N/A'}
+Wyjaśnienie: ${explanation || 'N/A'}
 --------------------------------------------------
-Temperatura: ${currentSailingData.temperature}°C
-Wiatr: ${currentSailingData.windSpeed} km/h
-Zachmurzenie: ${currentSailingData.cloudCover}%
-Opady: ${currentSailingData.precipitation} mm
-Ryzyko burzy (CAPE): ${currentSailingData.cape} J/kg (${getCapeDescription ? getCapeDescription(currentSailingData.cape) : 'N/A'})
+Dane pogodowe (wg aplikacji o ${currentSailingData.time ? new Date(currentSailingData.time).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : 'Brak danych o czasie'}):
+--------------------------------------------------
+Temperatura: ${currentSailingData.temperature !== undefined ? currentSailingData.temperature.toFixed(1) : 'N/A'}°C
+Wiatr: ${currentSailingData.windSpeed !== undefined ? currentSailingData.windSpeed.toFixed(1) : 'N/A'} km/h (${windMs} m/s, ${windKnots} węzłów)
+Skala Beauforta: ${beaufort ? `${beaufort.bft} Bft (${beaufort.desc})` : 'N/A'}
+Zachmurzenie: ${currentSailingData.cloudCover !== undefined ? currentSailingData.cloudCover : 'N/A'}%
+Opady: ${currentSailingData.precipitation !== undefined ? currentSailingData.precipitation : 'N/A'} mm
+Ryzyko burzy (CAPE): ${currentSailingData.cape !== undefined ? currentSailingData.cape : 'N/A'} J/kg (${getCapeDescription && currentSailingData.cape !== undefined ? getCapeDescription(currentSailingData.cape) : 'N/A'})
 --------------------------------------------------
 
 Opisz proszę, co się nie zgadza lub co można poprawić:
