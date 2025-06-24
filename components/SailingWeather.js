@@ -108,7 +108,7 @@ export default function SailingWeather() {
       setError(null);
       setExplanation(''); // Reset explanation
       try {
-        const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=53.639868477866656&longitude=19.55651417710413&hourly=temperature_2m,wind_speed_10m,precipitation,cloud_cover,cape&forecast_days=1&timezone=auto');
+        const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=53.639868477866656&longitude=19.55651417710413&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,precipitation,cloud_cover,cape&forecast_days=1&timezone=auto');
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -131,6 +131,8 @@ export default function SailingWeather() {
             currentData = {
               time: data.hourly.time[i],
               windSpeed: data.hourly.wind_speed_10m[i],
+              windGusts: data.hourly.wind_gusts_10m[i], // Added
+              relativeHumidity: data.hourly.relative_humidity_2m[i], // Added
               precipitation: data.hourly.precipitation[i],
               cloudCover: data.hourly.cloud_cover[i],
               cape: data.hourly.cape[i],
@@ -155,6 +157,8 @@ export default function SailingWeather() {
                         currentData = {
                             time: data.hourly.time[i],
                             windSpeed: data.hourly.wind_speed_10m[i],
+                            windGusts: data.hourly.wind_gusts_10m[i], // Added
+                            relativeHumidity: data.hourly.relative_humidity_2m[i], // Added
                             precipitation: data.hourly.precipitation[i],
                             cloudCover: data.hourly.cloud_cover[i],
                             cape: data.hourly.cape[i],
@@ -169,6 +173,8 @@ export default function SailingWeather() {
                     currentData = {
                         time: data.hourly.time[lastIndex],
                         windSpeed: data.hourly.wind_speed_10m[lastIndex],
+                        windGusts: data.hourly.wind_gusts_10m[lastIndex], // Added
+                        relativeHumidity: data.hourly.relative_humidity_2m[lastIndex], // Added
                         precipitation: data.hourly.precipitation[lastIndex],
                         cloudCover: data.hourly.cloud_cover[lastIndex],
                         cape: data.hourly.cape[lastIndex],
@@ -179,6 +185,8 @@ export default function SailingWeather() {
                  currentData = {
                     time: data.hourly.time[lastIndex],
                     windSpeed: data.hourly.wind_speed_10m[lastIndex],
+                    windGusts: data.hourly.wind_gusts_10m[lastIndex], // Added
+                    relativeHumidity: data.hourly.relative_humidity_2m[lastIndex], // Added
                     precipitation: data.hourly.precipitation[lastIndex],
                     cloudCover: data.hourly.cloud_cover[lastIndex],
                     cape: data.hourly.cape[lastIndex],
@@ -198,15 +206,21 @@ export default function SailingWeather() {
         let sailingScore = 0;
         let decision = selectedTriplet.no; // Default to "No"
         let explanationMsg = '';
+        const windSpeedInKnots = kmhToKnots(currentData.windSpeed);
+        const windGustsInKnots = kmhToKnots(currentData.windGusts);
+        const DANGEROUS_WIND_KNOTS = 25;
 
         // Critical "No-Go" conditions
-        const criticalWindOK = currentData.windSpeed >= WIND_SPEED_MIN_KMH && currentData.windSpeed <= WIND_SPEED_MAX_KMH;
+        const criticalWindOK = currentData.windSpeed >= WIND_SPEED_MIN_KMH && currentData.windSpeed <= WIND_SPEED_MAX_KMH && currentData.windGusts <= WIND_SPEED_MAX_KMH;
         const criticalNoRain = currentData.precipitation <= PRECIPITATION_MAX_MM;
         const criticalNoStormRisk = currentData.cape < CAPE_MAX_JKG;
 
         if (!criticalWindOK) {
           if (currentData.windSpeed < WIND_SPEED_MIN_KMH) reasons.push(`wiatr jest za słaby (${currentData.windSpeed.toFixed(1)} km/h, min. ${WIND_SPEED_MIN_KMH} km/h)`);
+          // Check regular wind speed against max
           if (currentData.windSpeed > WIND_SPEED_MAX_KMH) reasons.push(`wiatr jest za silny (${currentData.windSpeed.toFixed(1)} km/h, max. ${WIND_SPEED_MAX_KMH} km/h)`);
+          // Check gusts against max, ensuring not to duplicate message if regular wind already exceeded max
+          else if (currentData.windGusts > WIND_SPEED_MAX_KMH) reasons.push(`porywy wiatru są za silne (${currentData.windGusts.toFixed(1)} km/h, max. ${WIND_SPEED_MAX_KMH} km/h)`);
         }
         if (!criticalNoRain) {
           reasons.push(`występują opady (${currentData.precipitation} mm)`);
@@ -219,14 +233,7 @@ export default function SailingWeather() {
           explanationMsg = `Ponieważ ${reasons.join(', oraz ')}.`;
         } else {
           // All critical conditions are met, proceed to weighted scoring
-          let windScore = 1.0; // Assumed good if in range
-
-          let cloudCoverScore = 0;
-          if (currentData.cloudCover < CLOUD_COVER_IDEAL_MAX_PERCENT) {
-            cloudCoverScore = 1.0; // Ideal
-          } else if (currentData.cloudCover <= CLOUD_COVER_ACCEPTABLE_MAX_PERCENT) {
-            cloudCoverScore = 0.5; // Acceptable
-          }
+          let windScore = 1.0; // Assumed good if in range (already checked in critical conditions)
 
           let temperatureScore = 0;
           if (currentData.temperature >= TEMP_IDEAL_MIN_C && currentData.temperature <= TEMP_IDEAL_MAX_C) {
@@ -236,18 +243,21 @@ export default function SailingWeather() {
           }
           
           sailingScore = (windScore * WEIGHT_WIND) +
-                         (cloudCoverScore * WEIGHT_CLOUD_COVER) +
                          (temperatureScore * WEIGHT_TEMPERATURE);
 
           const displayScore = Math.round(sailingScore * 100);
+          // The threshold needs to be scaled by the sum of new weights if they don't sum to 1.
+          // However, the plan is to make them sum to 1, so SAILING_SCORE_THRESHOLD can remain as is.
           const displayThreshold = Math.round(SAILING_SCORE_THRESHOLD * 100);
+
 
           if (sailingScore >= SAILING_SCORE_THRESHOLD) {
             decision = selectedTriplet.yes;
             if (sailingScore < 0.95) { // Not perfect but good enough
                  explanationMsg = `Warunki są dobre (ocena: ${displayScore}%). `;
                  let details = [];
-                 if (cloudCoverScore < 1.0) details.push(`zachmurzenie ${currentData.cloudCover}%`);
+                 // cloudCover is no longer part of the score, so remove this check:
+                 // if (cloudCoverScore < 1.0) details.push(`zachmurzenie ${currentData.cloudCover}%`);
                  if (temperatureScore < 1.0) details.push(`temperatura ${currentData.temperature.toFixed(1)}°C`);
                  if (details.length > 0) explanationMsg += `Mimo to, ${details.join(' i ')} są w akceptowalnym zakresie.`;
                  else explanationMsg += `Wszystkie kluczowe parametry są w normie.`;
@@ -259,8 +269,9 @@ export default function SailingWeather() {
             decision = selectedTriplet.no;
             explanationMsg = `Warunki nie są wystarczająco dobre (ocena: ${displayScore}/${displayThreshold} pkt). `;
             let subOptimalReasons = [];
-            if (cloudCoverScore < 0.5) subOptimalReasons.push(`zbyt duże zachmurzenie (${currentData.cloudCover}%)`);
-            else if (cloudCoverScore < 1.0) subOptimalReasons.push(`zachmurzenie mogłoby być mniejsze (${currentData.cloudCover}%)`);
+            // cloudCover is no longer part of the score, so remove these checks:
+            // if (cloudCoverScore < 0.5) subOptimalReasons.push(`zbyt duże zachmurzenie (${currentData.cloudCover}%)`);
+            // else if (cloudCoverScore < 1.0) subOptimalReasons.push(`zachmurzenie mogłoby być mniejsze (${currentData.cloudCover}%)`);
             
             if (temperatureScore < 0.5) subOptimalReasons.push(`temperatura jest zbyt niska/wysoka (${currentData.temperature.toFixed(1)}°C)`);
             else if (temperatureScore < 1.0) subOptimalReasons.push(`temperatura mogłaby być bardziej komfortowa (${currentData.temperature.toFixed(1)}°C)`);
@@ -272,9 +283,19 @@ export default function SailingWeather() {
             }
           }
         }
+
+        // Add warning for dangerous wind conditions, regardless of sailing decision, if not already a "no-go" due to wind.
+        // This warning can append to existing explanationMsg.
+        let dangerousWindWarning = '';
+        if (windSpeedInKnots > DANGEROUS_WIND_KNOTS || windGustsInKnots > DANGEROUS_WIND_KNOTS) {
+            dangerousWindWarning = ` UWAGA: Prędkość wiatru (${windSpeedInKnots.toFixed(0)} kn) lub porywy (${windGustsInKnots.toFixed(0)} kn) przekraczają ${DANGEROUS_WIND_KNOTS} węzłów, co może stanowić niebezpieczne warunki!`;
+            // Prepend if explanationMsg is empty, append otherwise.
+            if(explanationMsg.length > 0 && !explanationMsg.endsWith(' ')) explanationMsg += ' ';
+            explanationMsg += dangerousWindWarning;
+        }
         
         setSailingDecision(decision);
-        setExplanation(explanationMsg);
+        setExplanation(explanationMsg.trim());
 
       } catch (e) {
         console.error("Failed to fetch or process weather data:", e);
@@ -349,8 +370,12 @@ export default function SailingWeather() {
             Wiatr: {currentSailingData.windSpeed.toFixed(1)} km/h
             ({kmhToMs(currentSailingData.windSpeed).toFixed(1)} m/s, {kmhToKnots(currentSailingData.windSpeed).toFixed(1)} węzłów)
             <br />
+            Porywy: {currentSailingData.windGusts.toFixed(1)} km/h
+            ({kmhToMs(currentSailingData.windGusts).toFixed(1)} m/s, {kmhToKnots(currentSailingData.windGusts).toFixed(1)} węzłów)
+            <br />
             Skala Beauforta: {getBeaufortScale(currentSailingData.windSpeed).bft} Bft ({getBeaufortScale(currentSailingData.windSpeed).desc})
           </p>
+          <p>Wilgotność: {currentSailingData.relativeHumidity}%</p>
           <p>Zachmurzenie: {currentSailingData.cloudCover}%</p>
           <p>Opady: {currentSailingData.precipitation} mm</p>
           <p>Ryzyko burzy (CAPE): {currentSailingData.cape} J/kg ({getCapeDescription(currentSailingData.cape)})</p>
