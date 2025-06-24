@@ -378,7 +378,7 @@ export default function SailingWeather() {
           <p>Wilgotność: {currentSailingData.relativeHumidity}%</p>
           <p>Zachmurzenie: {currentSailingData.cloudCover}%</p>
           <p>Opady: {currentSailingData.precipitation} mm</p>
-          <p>Ryzyko burzy (CAPE): {currentSailingData.cape} J/kg ({getCapeDescription(currentSailingData.cape)})</p>
+          <p>Ryzyko burzy (CAPE): {getCapeDescription(currentSailingData.cape)} ({currentSailingData.cape} J/kg)</p>
         </div>
       )}
       
